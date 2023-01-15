@@ -864,7 +864,7 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
                     PaymentCardToken savedCard = Services.PaymentCard.GetByUserId(order.CustomerAccessUserId).FirstOrDefault(t => t.Token.Equals(cardToken));
                     if (savedCard == null)
                     {
-                        savedCard = Services.PaymentCard.CreatePaymentCard(order.CustomerAccessUserId, order.PaymentMethodId, order.LanguageId, cardName, order.TransactionCardType, order.TransactionCardNumber, cardToken);
+                        savedCard = Services.PaymentCard.CreatePaymentCard(order.CustomerAccessUserId, order.PaymentMethodId, cardName, order.TransactionCardType, order.TransactionCardNumber, cardToken);
                     }
 
                     order.SavedCardId = savedCard.ID;
@@ -951,14 +951,14 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
             switch (dropdownName)
             {
                 case "PaymentFormMode":
-                    result.Add(nameof(RenderFormMode.Hosted), Translate.Translate("Hosted (Use Authorize.Net hosted form)"));
-                    result.Add(nameof(RenderFormMode.HostedPartial), Translate.Translate("Partial Hosted (Show Authorize.Net hosted form in pop-up on your own template)"));
-                    result.Add(nameof(RenderFormMode.Manual), Translate.Translate("Manual (Use your own payment form. SSL required)"));
+                    result.Add(nameof(RenderFormMode.Hosted), Translator.Translate("Hosted (Use Authorize.Net hosted form)"));
+                    result.Add(nameof(RenderFormMode.HostedPartial), Translator.Translate("Partial Hosted (Show Authorize.Net hosted form in pop-up on your own template)"));
+                    result.Add(nameof(RenderFormMode.Manual), Translator.Translate("Manual (Use your own payment form. SSL required)"));
                     break;
 
                 case "TypeOfTransaction":
-                    result.Add(nameof(TransactionType.AuthCaptureTransaction), Translate.Translate("Authorization and Capture"));
-                    result.Add(nameof(TransactionType.AuthOnlyTransaction), Translate.Translate("Authorization only"));
+                    result.Add(nameof(TransactionType.AuthCaptureTransaction), Translator.Translate("Authorization and Capture"));
+                    result.Add(nameof(TransactionType.AuthOnlyTransaction), Translator.Translate("Authorization only"));
                     break;
             }
             return result;
