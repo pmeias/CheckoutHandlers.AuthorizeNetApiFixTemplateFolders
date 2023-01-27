@@ -3,7 +3,8 @@
 		<VersionPrefix>10.0.0</VersionPrefix>
 		<VersionSuffix>Alpha0001</VersionSuffix>
 		<AssemblyVersion>1.0.0.0</AssemblyVersion>
-		<Description>AuthorizeNetCheckoutHandler</Description>
+		<Title>Authorize.Net API</Title>
+		<Description>Authorize.Net API Checkout Handler</Description>
 	</PropertyGroup>
 	<PropertyGroup>
 		<PackageProjectUrl>https://doc.dynamicweb.com/</PackageProjectUrl>

@@ -9,7 +9,6 @@ using Dynamicweb.Ecommerce.Orders.Gateways;
 using Dynamicweb.Extensibility.AddIns;
 using Dynamicweb.Extensibility.Editors;
 using Dynamicweb.Rendering;
-using Dynamicweb.SystemTools;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -951,14 +950,14 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
             switch (dropdownName)
             {
                 case "PaymentFormMode":
-                    result.Add(nameof(RenderFormMode.Hosted), Translator.Translate("Hosted (Use Authorize.Net hosted form)"));
-                    result.Add(nameof(RenderFormMode.HostedPartial), Translator.Translate("Partial Hosted (Show Authorize.Net hosted form in pop-up on your own template)"));
-                    result.Add(nameof(RenderFormMode.Manual), Translator.Translate("Manual (Use your own payment form. SSL required)"));
+                    result.Add(nameof(RenderFormMode.Hosted), "Hosted (Use Authorize.Net hosted form)");
+                    result.Add(nameof(RenderFormMode.HostedPartial), "Partial Hosted (Show Authorize.Net hosted form in pop-up on your own template)");
+                    result.Add(nameof(RenderFormMode.Manual), "Manual (Use your own payment form. SSL required)");
                     break;
 
                 case "TypeOfTransaction":
-                    result.Add(nameof(TransactionType.AuthCaptureTransaction), Translator.Translate("Authorization and Capture"));
-                    result.Add(nameof(TransactionType.AuthOnlyTransaction), Translator.Translate("Authorization only"));
+                    result.Add(nameof(TransactionType.AuthCaptureTransaction), "Authorization and Capture");
+                    result.Add(nameof(TransactionType.AuthOnlyTransaction), "Authorization only");
                     break;
             }
             return result;
