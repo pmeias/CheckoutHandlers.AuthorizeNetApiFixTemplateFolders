@@ -1,8 +1,8 @@
 ﻿namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi.Model
 {
-    internal class setting
+    internal class Setting
     {
-        public string settingName { get; set; }
-        public string settingValue { get; set; }
+        public string settingName { get; set; } = "";
+        public string settingValue { get; set; } = "";
     }
 }

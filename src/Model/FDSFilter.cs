@@ -4,7 +4,7 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi.Model
 {
     internal class FDSFilter
     {
-        public string name { get; set; }
+        public string name { get; set; } = "";
         public FDSFilterActionEnum action { get; set; }
     }
 }

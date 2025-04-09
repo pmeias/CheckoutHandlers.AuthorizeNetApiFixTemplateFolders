@@ -2,6 +2,6 @@
 {
     internal class orderType
     {
-        public string invoiceNumber { get; set; }
+        public string invoiceNumber { get; set; } = "";
     }
 }

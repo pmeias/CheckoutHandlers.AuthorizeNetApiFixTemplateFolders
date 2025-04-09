@@ -4,6 +4,6 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi.Model
 {
     internal class lineItems
     {
-        public List<lineItem> lineItem { get; set; }
+        public List<lineItem> lineItem { get; set; } = [];
     }
 }

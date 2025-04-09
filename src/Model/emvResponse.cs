@@ -2,7 +2,7 @@
 {
     internal class emvResponse
     {
-        public string tlvData { get; set; }
-        public emvTag tags { get; set; }
+        public string tlvData { get; set; } = "";
+        public emvTag tags { get; set; } = new();
     }
 }

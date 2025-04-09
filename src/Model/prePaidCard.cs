@@ -2,8 +2,8 @@
 {
     internal class prePaidCard
     {
-        public string requestedAmount { get; set; }
-        public string approvedAmount { get; set; }
-        public string balanceOnCard { get; set; }
+        public string requestedAmount { get; set; } = "";
+        public string approvedAmount { get; set; } = "";
+        public string balanceOnCard { get; set; } = "";
     }
 }

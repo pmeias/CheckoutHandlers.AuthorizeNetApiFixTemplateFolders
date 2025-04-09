@@ -2,7 +2,7 @@
 {
     internal class customerProfileExType
     {
-        public string merchantCustomerId { get; set; }
-        public string customerProfileId { get; set; }
+        public string merchantCustomerId { get; set; } = "";
+        public string customerProfileId { get; set; } = "";
     }
 }

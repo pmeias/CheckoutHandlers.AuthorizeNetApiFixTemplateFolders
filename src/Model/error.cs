@@ -1,8 +1,8 @@
 ﻿namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi.Model
 {
-    internal class error
+    internal class Error
     {
-        public string errorCode { get; set; }
-        public string errorText { get; set; }
+        public string errorCode { get; set; } = "";
+        public string errorText { get; set; } = "";
     }
 }

@@ -7,19 +7,19 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi.Model
     public partial class NotificationItem
     {
         [DataMember(Name = "notificationId")]
-        public string Id { get; set; }
+        public string Id { get; set; } = "";
 
         [DataMember(Name = "eventType")]
-        public string EventType { get; set; }
+        public string EventType { get; set; } = "";
 
         [DataMember(Name = "eventDate")]
         public DateTime EventDate { get; set; }
 
         [DataMember(Name = "webhookId")]
-        public string WebhookId { get; set; }
+        public string WebhookId { get; set; } = "";
 
         [DataMember(Name = "payload")]
-        public NotificationPayload Payload { get; set; }
+        public NotificationPayload Payload { get; set; } = new();
 
         public NotificationEventType? GetEventType()
         {

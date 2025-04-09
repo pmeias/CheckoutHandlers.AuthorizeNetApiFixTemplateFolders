@@ -2,7 +2,7 @@
 {
     internal class customerProfilePaymentType
     {
-        public string customerProfileId { get; set; }
-        public paymentProfile paymentProfile { get; set; }
+        public string customerProfileId { get; set; } = "";
+        public paymentProfile paymentProfile { get; set; } = new();
     }
 }

@@ -2,8 +2,8 @@
 {
     internal class customerProfileIdType
     {
-        public string customerProfileId { get; set; }
-        public string customerPaymentProfileId { get; set; }
-        public string customerAddressId { get; set; }
+        public string customerProfileId { get; set; } = "";
+        public string customerPaymentProfileId { get; set; } = "";
+        public string customerAddressId { get; set; } = "";
     }
 }

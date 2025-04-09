@@ -4,7 +4,7 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi.API
 {
     internal class getTransactionDetailsResponse
     {
-        public transactionDetailsType transaction { get; set; }
-        public messagesType messages { get; set; }
+        public transactionDetailsType transaction { get; set; } = new();
+        public messagesType messages { get; set; } = new();
     }
 }

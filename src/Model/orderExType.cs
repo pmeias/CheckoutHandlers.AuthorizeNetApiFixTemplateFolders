@@ -2,7 +2,7 @@
 {
     internal class orderExType
     {
-        public string invoiceNumber { get; set; }
-        public string purchaseOrderNumber { get; set; }
+        public string invoiceNumber { get; set; } = "";
+        public string purchaseOrderNumber { get; set; } = "";
     }
 }

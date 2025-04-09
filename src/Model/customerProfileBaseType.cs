@@ -2,6 +2,6 @@
 {
     internal class customerProfileBaseType
     {
-        public string merchantCustomerId { get; set; }
+        public string merchantCustomerId { get; set; } = "";
     }
 }

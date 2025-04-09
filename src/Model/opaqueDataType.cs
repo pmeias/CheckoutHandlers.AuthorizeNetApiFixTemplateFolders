@@ -2,7 +2,7 @@
 {
     internal class opaqueDataType
     {
-        public string dataDescriptor { get; set; }
-        public string dataValue { get; set; }
+        public string dataDescriptor { get; set; } = "";
+        public string dataValue { get; set; } = "";
     }
 }

@@ -2,6 +2,6 @@
 {
     internal class paymentProfile
     {
-        public string paymentProfileId { get; set; }
+        public string paymentProfileId { get; set; } = "";
     }
 }

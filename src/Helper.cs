@@ -31,11 +31,11 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
             return errorText;
         }
 
-        public static void UpdateTransactionNumber(Order order, string trnasactionId)
+        public static void UpdateTransactionNumber(Order order, string? transactionId)
         {
-            if (!string.IsNullOrEmpty(trnasactionId) && !trnasactionId.Equals(order.TransactionNumber, StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrEmpty(transactionId) && !transactionId.Equals(order.TransactionNumber, StringComparison.OrdinalIgnoreCase))
             {
-                order.TransactionNumber = trnasactionId;
+                order.TransactionNumber = transactionId;
             }
         }
 
@@ -60,13 +60,16 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
         public static string CreateErrorMessage(string prefix, createTransactionResponse response)
         {
             string codeText = string.Empty;
+            if (response.transactionResponse is null)
+                return codeText;
+
             string errorCode;
             string errorText;
             if (!string.IsNullOrEmpty(response.transactionResponse.responseCode))
             {
                 codeText = GetResponseTextByCode(response.transactionResponse.responseCode);
             }
-            if (response.transactionResponse.errors != null)
+            if (response.transactionResponse.errors is not null)
             {
                 errorCode = response.transactionResponse.errors[0].errorCode;
                 errorText = response.transactionResponse.errors[0].errorText;
@@ -143,7 +146,7 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
             return value.Substring(0, maxLength);
         }
 
-        public static bool IsValidHmac(string signatureKey, string notificationBody, string incomingHmac)
+        public static bool IsValidHmac(string? signatureKey, string? notificationBody, string? incomingHmac)
         {
             if (string.IsNullOrEmpty(signatureKey) || string.IsNullOrEmpty(notificationBody) || string.IsNullOrEmpty(incomingHmac))
             {

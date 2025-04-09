@@ -1,5 +1,4 @@
 ﻿using Dynamicweb.Core;
-using Dynamicweb.Core.Json.Settings;
 using Dynamicweb.Ecommerce.Cart;
 using Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi.API;
 using Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi.Enum;
@@ -8,9 +7,9 @@ using Dynamicweb.Ecommerce.Orders;
 using Dynamicweb.Ecommerce.Orders.Gateways;
 using Dynamicweb.Extensibility.AddIns;
 using Dynamicweb.Extensibility.Editors;
+using Dynamicweb.Frontend;
 using Dynamicweb.Rendering;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -24,7 +23,7 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
     /// AuthorizeNet API Checkout Handler
     /// </summary>
     [AddInName("Authorize.Net API"), AddInDescription("AuthorizeNet API Checkout Handler"), AddInUseParameterGrouping(true)]
-    public class AuthorizeNetCheckoutHandler : CheckoutHandler, ICancelOrder, IFullReturn, IRemoteCapture, ISavedCard, IDropDownOptions
+    public class AuthorizeNetCheckoutHandler : CheckoutHandler, ICancelOrder, IFullReturn, IRemoteCapture, ISavedCard, IParameterOptions
     {
         private static class Tags
         {
@@ -39,13 +38,13 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
         /// <summary>
         /// Compact serializer settings. Do not excludes default value and null.
         /// </summary>
-        private static readonly JsonSettings JsonSettings = new JsonSettings
+        private static readonly JsonSerializerOptions JsonSettings = new JsonSerializerOptions
         {
-            Formatting = Core.Json.Settings.Formatting.None,
-            NullValueHandling = NullValueHandling.Include,
-            DefaultValueHandling = DefaultValueHandling.Include,
-            MissingMemberHandling = MissingMemberHandling.Ignore,
-            StringEscapeHandling = StringEscapeHandling.EscapeNonAscii,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = false,
+            IgnoreReadOnlyProperties = true,
+            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull | System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault,
+            UnmappedMemberHandling = System.Text.Json.Serialization.JsonUnmappedMemberHandling.Skip,
         };
         private static readonly object locker = new object();
 
@@ -59,16 +58,16 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
         #region AddIn parameters
 
         [AddInParameter("API login ID"), AddInParameterEditor(typeof(TextParameterEditor), "")]
-        public string ApiLoginId { get; set; }
+        public string ApiLoginId { get; set; } = "";
 
         [AddInParameter("Transaction key"), AddInParameterEditor(typeof(TextParameterEditor), "")]
-        public string TransactionKey { get; set; }
+        public string TransactionKey { get; set; } = "";
 
         [AddInParameter("Signature key"), AddInParameterEditor(typeof(TextParameterEditor), "TextArea=true")]
-        public string SignatureKey { get; set; }
+        public string SignatureKey { get; set; } = "";
 
         [AddInLabel("Public client key"), AddInParameter("PublicClientKey"), AddInParameterEditor(typeof(TextParameterEditor), "")]
-        public string PublicClientKey { get; set; }
+        public string PublicClientKey { get; set; } = "";
 
         [AddInParameter("Allow save cards"), AddInParameterEditor(typeof(YesNoParameterEditor), "")]
         public bool AllowSaveCards { get; set; }
@@ -125,19 +124,19 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
         }
 
         [AddInLabel("Payment form template"), AddInParameter("PaymentFormTemplate"), AddInParameterGroup("Template settings"), AddInParameterEditor(typeof(TemplateParameterEditor), "folder=templates/eCom7/CheckoutHandler/AuthorizeNet/Post")]
-        public string PaymentFormTemplate { get; set; }
+        public string PaymentFormTemplate { get; set; } = "";
 
         [AddInLabel("Cancel template"), AddInParameter("CancelTemplate"), AddInParameterGroup("Template settings"), AddInParameterEditor(typeof(TemplateParameterEditor), "folder=templates/eCom7/CheckoutHandler/AuthorizeNet/Cancel")]
-        public string CancelTemplate { get; set; }
+        public string CancelTemplate { get; set; } = "";
 
         [AddInLabel("Error template"), AddInParameter("ErrorTemplate"), AddInParameterGroup("Template settings"), AddInParameterEditor(typeof(TemplateParameterEditor), "folder=templates/eCom7/CheckoutHandler/AuthorizeNet/Error")]
-        public string ErrorTemplate { get; set; }
+        public string ErrorTemplate { get; set; } = "";
 
         #endregion
 
         #region CheckoutHandler
 
-        public override string StartCheckout(Order order)
+        public override OutputResult BeginCheckout(Order order, CheckoutParameters parameters)
         {
             LogEvent(order, "Checkout started");
 
@@ -177,21 +176,21 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
                 template.SetTag(Tags.FormAction, $"{GetBaseUrl(order)}&action=FormPost");
                 template.SetTag(Tags.PublicClientKey, PublicClientKey);
 
-                return Render(order, template);
+                return new ContentOutputResult() { Content = Render(order, template) };
             }
         }
 
-        public override string Redirect(Order order)
+        public override OutputResult HandleRequest(Order order)
         {
             LogEvent(order, "Redirected to AuthorizeNet CheckoutHandler");
 
             lock (locker)
             {
-                var action = Converter.ToString(Context.Current.Request["action"]);
+                var action = Converter.ToString(Context.Current?.Request["action"]);
                 if (string.IsNullOrEmpty(action) && !string.IsNullOrEmpty(order.GatewayResult))
                 {
                     Callback(order);
-                    return null;
+                    return ContentOutputResult.Empty;
                 }
 
                 try
@@ -208,12 +207,12 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
                             return OrderCancelled(order);
 
                         default:
-                            return string.Empty;
+                            return ContentOutputResult.Empty;
                     }
                 }
                 catch (ThreadAbortException)
                 {
-                    return string.Empty;
+                    return ContentOutputResult.Empty;
                 }
                 catch (Exception ex)
                 {
@@ -222,7 +221,7 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
             }
         }
 
-        private string RedirectToHostedForm(Order order)
+        private OutputResult RedirectToHostedForm(Order order)
         {
             LogEvent(order, "Redirect to Hosted Form");
 
@@ -237,14 +236,14 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
 
             hostedPaymentSettings settings = new hostedPaymentSettings
             {
-                setting = new List<setting>
+                setting = new List<Setting>
                 {
-                    new setting
+                    new Setting
                     {
                         settingName = SettingEnum.hostedPaymentReturnOptions.ToString(),
-                        settingValue = Converter.Serialize(new { url = receipt, cancelUrl = cancel, }, JsonSettings)
+                        settingValue = System.Text.Json.JsonSerializer.Serialize(new { url = receipt, cancelUrl = cancel }, JsonSettings)
                     },
-                    new setting
+                    new Setting
                     {
                         settingName = SettingEnum.hostedPaymentPaymentOptions.ToString(),
                         settingValue = "{\"showBankAccount\": false}" // hide "Bank Account" payment method (NP approved)                        
@@ -258,9 +257,13 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
                 transactionRequest = CreateTransactionRequest(order, Converter.ToDecimal(orderAmount), null, null, true),
                 hostedPaymentSettings = settings
             };
-            getHostedPaymentPageResponse getHostedPaymentPage = PostToAuthorizeNet<getHostedPaymentPageResponse>(JsonSerializer.Serialize(new { getHostedPaymentPageRequest }));
+            getHostedPaymentPageResponse? getHostedPaymentPage = PostToAuthorizeNet<getHostedPaymentPageResponse>(JsonSerializer.Serialize(new { getHostedPaymentPageRequest }));
+            if (getHostedPaymentPage is null) // server or transport error
+            {
+                return PaymentError(order, "Failed to get hosted payment page");
+            }
 
-            if (getHostedPaymentPage != null && getHostedPaymentPage.messages.resultCode == messageTypeEnum.Ok.ToString())
+            if (getHostedPaymentPage.messages.resultCode == messageTypeEnum.Ok.ToString())
             {
                 var formUrl = TestMode ? "https://test.authorize.net/payment/payment" : "https://accept.authorize.net/payment/payment";
                 var postValues = new Dictionary<string, string>
@@ -268,30 +271,29 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
                     { "token",  getHostedPaymentPage.token},
                 };
 
-                SubmitForm(formUrl, postValues);
-                return null;
+                return GetSubmitFormResult(formUrl, postValues);
             }
 
-            string errorMessage = $"Failed to get hosted payment page ({getHostedPaymentPage.messages.message[0].code}): {getHostedPaymentPage.messages.message[0].text}";
+            string errorMessage = $"Failed to get hosted payment page ({getHostedPaymentPage?.messages.message[0].code}): {getHostedPaymentPage?.messages.message[0].text}";
 
             return OnError(order, errorMessage);
         }
 
-        private string CreatePaymentTransaction(Order order, customerProfilePaymentType profileToCharge)
+        private OutputResult CreatePaymentTransaction(Order order, customerProfilePaymentType? profileToCharge)
         {
             LogEvent(order, "Create payment transaction");
 
             double orderAmount = Services.Currencies.Round(order.Currency, order.Price.Price);
 
-            paymentType payment = null;
-            if (profileToCharge == null)
+            paymentType? payment = null;
+            if (profileToCharge is null)
             {
                 payment = new paymentType
                 {
                     opaqueData = new opaqueDataType
                     {
-                        dataValue = Converter.ToString(Context.Current.Request["dataValue"]),
-                        dataDescriptor = Converter.ToString(Context.Current.Request["dataDescriptor"]),
+                        dataValue = Converter.ToString(Context.Current?.Request["dataValue"]),
+                        dataDescriptor = Converter.ToString(Context.Current?.Request["dataDescriptor"]),
                     },
                 };
             }
@@ -302,17 +304,17 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
                 merchantAuthentication = GetMerchantAuthentication()
             };
 
-            createTransactionResponse createTransaction = PostToAuthorizeNet<createTransactionResponse>(JsonSerializer.Serialize(new { createTransactionRequest }));
+            createTransactionResponse? createTransaction = PostToAuthorizeNet<createTransactionResponse>(JsonSerializer.Serialize(new { createTransactionRequest }));
 
-            if (createTransaction.transactionResponse?.messages != null && createTransaction.messages?.resultCode == messageTypeEnum.Ok.ToString())
+            if (createTransaction?.transactionResponse?.messages != null && createTransaction.messages?.resultCode == messageTypeEnum.Ok.ToString())
             {
                 return OrderCompleted(order, orderAmount, createTransaction);
             }
 
-            return OrderRefused(order, createTransaction.transactionResponse.errors[0].errorText);
+            return OrderRefused(order, createTransaction?.transactionResponse?.errors[0].errorText);
         }
 
-        private string OrderCompleted(Order order, double transactionAmount, createTransactionResponse response)
+        private OutputResult OrderCompleted(Order order, double transactionAmount, createTransactionResponse? response)
         {
             LogEvent(order, "State ok");
 
@@ -320,10 +322,10 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
             var needSaveCard = NeedSaveCard(order, out cardName);
 
             order.TransactionAmount = transactionAmount;
-            if (response != null)
+            if (response is not null && response.transactionResponse is not null)
             {
                 Helper.UpdateTransactionNumber(order, response.transactionResponse.transId);
-                order.TransactionStatus = Helper.GetResponseTextByCode(response.transactionResponse.responseCode);
+                order.TransactionStatus = Helper.GetResponseTextByCode(response.transactionResponse.responseCode ?? "");
                 order.TransactionCardType = response.transactionResponse.accountType;
                 order.TransactionCardNumber = response.transactionResponse.accountNumber;
                 if (needSaveCard)
@@ -353,11 +355,10 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
                 Save(order);
             }
 
-            RedirectToCart(order);
-            return null;
+            return PassToCart(order);
         }
 
-        private string OrderCancelled(Order order)
+        private OutputResult OrderCancelled(Order order)
         {
             LogEvent(order, "Order cancelled");
 
@@ -371,10 +372,10 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
             var orderRenderer = new Frontend.Renderer();
             orderRenderer.RenderOrderDetails(cancelTemplate, order, true);
 
-            return cancelTemplate.Output();
+            return new ContentOutputResult() { Content = cancelTemplate.Output() };
         }
 
-        private string OrderRefused(Order order, string refusalReason)
+        private OutputResult OrderRefused(Order order, string? refusalReason)
         {
             LogEvent(order, "Order refused");
 
@@ -386,7 +387,7 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
             return OnError(order, $"Payment was refused. Refusal reason: {refusalReason}");
         }
 
-        private string PaymentError(Order order, string reason)
+        private OutputResult PaymentError(Order order, string reason)
         {
             LogEvent(order, "Payment error");
 
@@ -398,7 +399,7 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
             return OnError(order, $"There was an error when the payment was being processed. Reason: {reason}");
         }
 
-        private transactionRequestType CreateTransactionRequest(Order order, decimal orderAmount, paymentType payment, customerProfilePaymentType profileToCharge, bool includeCustomerData)
+        private transactionRequestType CreateTransactionRequest(Order order, decimal orderAmount, paymentType? payment, customerProfilePaymentType? profileToCharge, bool includeCustomerData)
         {
             var request = new transactionRequestType
             {
@@ -453,7 +454,7 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
             order.GatewayResult = string.Empty;
             Services.Orders.UpdateGatewayResult(order, false);
 
-            var hmacSignature = Context.Current.Request.Headers["X-ANET-Signature"].Replace("sha512=", string.Empty);
+            var hmacSignature = Context.Current?.Request?.Headers["X-ANET-Signature"]?.Replace("sha512=", string.Empty);
             if (!Helper.IsValidHmac(SignatureKey.Trim(), gatewayResult, hmacSignature))
             {
                 LogError(order, "Cannot handle notification item: HMAC validation failed");
@@ -461,6 +462,12 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
             }
 
             var requestData = Converter.Deserialize<NotificationItem>(gatewayResult);
+            if (requestData is null)
+            {
+                LogError(order, "Cannot handle notification item: request data is null");
+                return;
+            }
+
             var eventType = requestData.GetEventType();
             if (!eventType.HasValue)
             {
@@ -483,10 +490,10 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
                             // There is a case when we do not get transaction information: using Hosted template, user complete the payment and do not click 'Continue' button on Authorize.Net receipt page (e.g. close the tab)
                             // But we always gets notifications (if set up). So, we can try to get missed data here, using GetTransactionDetails call
                             var transactionDetails = GetTransactionDetails(payload.Id);
-                            if (transactionDetails != null)
+                            if (transactionDetails is not null)
                             {
                                 var cardDetails = transactionDetails.payment.creditCard;
-                                if (cardDetails != null)
+                                if (cardDetails is not null)
                                 {
                                     order.TransactionCardType = cardDetails.cardType.ToString();
                                     order.TransactionCardNumber = cardDetails.cardNumber;
@@ -593,7 +600,7 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
             order.TransactionStatus = Helper.GetResponseTextByCode(payload.ResponseCode);
         }
 
-        private transactionDetailsType GetTransactionDetails(string transactionId)
+        private transactionDetailsType? GetTransactionDetails(string transactionId)
         {
             var getTransactionDetailsRequest = new getTransactionDetailsRequest
             {
@@ -601,9 +608,13 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
                 merchantAuthentication = GetMerchantAuthentication()
             };
 
-            getTransactionDetailsResponse getTransactionDetails = PostToAuthorizeNet<getTransactionDetailsResponse>(JsonSerializer.Serialize(new { getTransactionDetailsRequest }));
+            getTransactionDetailsResponse? getTransactionDetails = PostToAuthorizeNet<getTransactionDetailsResponse>(JsonSerializer.Serialize(new { getTransactionDetailsRequest }));
+            if (getTransactionDetails is null) // server or transport error
+            {
+                return null;
+            }
 
-            if (getTransactionDetails != null && getTransactionDetails.messages.resultCode == messageTypeEnum.Ok.ToString())
+            if (getTransactionDetails.messages.resultCode == messageTypeEnum.Ok.ToString())
             {
                 return getTransactionDetails.transaction;
             }
@@ -638,7 +649,9 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
                 merchantAuthentication = GetMerchantAuthentication()
             };
 
-            createTransactionResponse createTransaction = PostToAuthorizeNet<createTransactionResponse>(JsonSerializer.Serialize(new { createTransactionRequest }));
+            createTransactionResponse? createTransaction = PostToAuthorizeNet<createTransactionResponse>(JsonSerializer.Serialize(new { createTransactionRequest }));
+            if (createTransaction is null)
+                return false;
 
             if (createTransaction.transactionResponse?.messages != null && createTransaction.messages?.resultCode == messageTypeEnum.Ok.ToString())
             {
@@ -680,7 +693,13 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
                 merchantAuthentication = GetMerchantAuthentication()
             };
 
-            createTransactionResponse createTransaction = PostToAuthorizeNet<createTransactionResponse>(JsonSerializer.Serialize(new { createTransactionRequest }));
+            createTransactionResponse? createTransaction = PostToAuthorizeNet<createTransactionResponse>(JsonSerializer.Serialize(new { createTransactionRequest }));
+            if (createTransaction is null)
+            {
+                var text = "Something went wrong in communication with Authorize";
+                LogError(order, text);
+                return new OrderCaptureInfo(OrderCaptureInfo.OrderCaptureState.Failed, text);
+            }
 
             if (createTransaction.transactionResponse?.messages != null && createTransaction.messages?.resultCode == messageTypeEnum.Ok.ToString())
             {
@@ -734,7 +753,7 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
 
             double refundAmount = order.TransactionAmount;
 
-            if (order.CaptureInfo == null || order.CaptureInfo.State != OrderCaptureInfo.OrderCaptureState.Success || refundAmount < 0.01)
+            if (order.CaptureInfo is null || order.CaptureInfo.State != OrderCaptureInfo.OrderCaptureState.Success || refundAmount < 0.01)
             {
                 var message = "Order must be captured before return";
                 LogError(order, message);
@@ -763,7 +782,9 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
                 merchantAuthentication = GetMerchantAuthentication()
             };
 
-            createTransactionResponse createTransaction = PostToAuthorizeNet<createTransactionResponse>(JsonSerializer.Serialize(new { createTransactionRequest }));
+            createTransactionResponse? createTransaction = PostToAuthorizeNet<createTransactionResponse>(JsonSerializer.Serialize(new { createTransactionRequest }));
+            if (createTransaction is null)
+                return;
 
             if (createTransaction.transactionResponse?.messages != null && createTransaction.messages?.resultCode == messageTypeEnum.Ok.ToString())
             {
@@ -784,7 +805,7 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
         public void DeleteSavedCard(int savedCardId)
         {
             var savedCard = Services.PaymentCard.GetById(savedCardId);
-            if (savedCard == null)
+            if (savedCard is null)
             {
                 return;
             }
@@ -826,11 +847,13 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
                         paymentProfile = new paymentProfile { paymentProfileId = savedCard.Token },
                     };
 
-                    return CreatePaymentTransaction(order, profileToCharge);
+                    if (CreatePaymentTransaction(order, profileToCharge) is ContentOutputResult paymentContentOutputResult)
+                        return paymentContentOutputResult.Content;
                 }
             }
 
-            return StartCheckout(order);
+            return BeginCheckout(order) is ContentOutputResult checkoutContentOutput ?
+                checkoutContentOutput.Content : string.Empty;
         }
 
         public bool SavedCardSupported(Order order) => AllowSaveCards;
@@ -852,7 +875,7 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
             if (AllowSaveCards && order.CustomerAccessUserId > 0)
             {
                 var profile = GetCustomerProfile(order.CustomerAccessUserId, true);
-                if (profile == null)
+                if (profile is null)
                 {
                     return;
                 }
@@ -860,8 +883,8 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
                 var cardToken = CreatePaymentProfileFromTransaction(order.TransactionNumber, profile.customerProfileId);
                 if (!string.IsNullOrEmpty(cardToken))
                 {
-                    PaymentCardToken savedCard = Services.PaymentCard.GetByUserId(order.CustomerAccessUserId).FirstOrDefault(t => t.Token.Equals(cardToken));
-                    if (savedCard == null)
+                    PaymentCardToken? savedCard = Services.PaymentCard.GetByUserId(order.CustomerAccessUserId).FirstOrDefault(t => t.Token.Equals(cardToken));
+                    if (savedCard is null)
                     {
                         savedCard = Services.PaymentCard.CreatePaymentCard(order.CustomerAccessUserId, order.PaymentMethodId, cardName, order.TransactionCardType, order.TransactionCardNumber, cardToken);
                     }
@@ -874,7 +897,7 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
             }
         }
 
-        private customerProfileMaskedType GetCustomerProfile(int userId, bool tryCreate)
+        private customerProfileMaskedType? GetCustomerProfile(int userId, bool tryCreate)
         {
             var getCustomerProfileRequest = new getCustomerProfileRequest
             {
@@ -882,9 +905,9 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
                 merchantAuthentication = GetMerchantAuthentication()
             };
 
-            getCustomerProfileResponse getCustomerProfile = PostToAuthorizeNet<getCustomerProfileResponse>(JsonSerializer.Serialize(new { getCustomerProfileRequest }));
+            getCustomerProfileResponse? getCustomerProfile = PostToAuthorizeNet<getCustomerProfileResponse>(JsonSerializer.Serialize(new { getCustomerProfileRequest }));
 
-            if (getCustomerProfile == null) // server or transport error
+            if (getCustomerProfile is null) // server or transport error
             {
                 return null;
             }
@@ -905,9 +928,11 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
                     merchantAuthentication = GetMerchantAuthentication()
                 };
 
-                createCustomerProfileResponse createCustomerProfile = PostToAuthorizeNet<createCustomerProfileResponse>(JsonSerializer.Serialize(new { createCustomerProfileRequest }));
+                createCustomerProfileResponse? createCustomerProfile = PostToAuthorizeNet<createCustomerProfileResponse>(JsonSerializer.Serialize(new { createCustomerProfileRequest }));
+                if (createCustomerProfile is null)
+                    return null;
 
-                if (createCustomerProfile != null && createCustomerProfile.messages.resultCode == messageTypeEnum.Ok.ToString())
+                if (createCustomerProfile.messages.resultCode == messageTypeEnum.Ok.ToString())
                 {
                     return new customerProfileMaskedType { customerProfileId = createCustomerProfile.customerProfileId };
                 }
@@ -930,9 +955,13 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
                 merchantAuthentication = GetMerchantAuthentication()
             };
 
-            createCustomerProfileResponse createCustomerProfile = PostToAuthorizeNet<createCustomerProfileResponse>(JsonSerializer.Serialize(new { createCustomerProfileFromTransactionRequest }));
+            createCustomerProfileResponse? createCustomerProfile = PostToAuthorizeNet<createCustomerProfileResponse>(JsonSerializer.Serialize(new { createCustomerProfileFromTransactionRequest }));
+            if (createCustomerProfile is null)// server or transport error
+            {
+                return string.Empty;
+            }
 
-            if (createCustomerProfile != null && createCustomerProfile.messages.resultCode == messageTypeEnum.Ok.ToString())
+            if (createCustomerProfile.messages.resultCode == messageTypeEnum.Ok.ToString())
             {
                 return createCustomerProfile.customerPaymentProfileIdList[0];
             }
@@ -944,20 +973,20 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
 
         #region IDropDownOptions
 
-        public Hashtable GetOptions(string dropdownName)
+        public IEnumerable<ParameterOption> GetParameterOptions(string parameterName)
         {
-            var result = new Hashtable();
-            switch (dropdownName)
+            var result = new List<ParameterOption>();
+            switch (parameterName)
             {
                 case "PaymentFormMode":
-                    result.Add(nameof(RenderFormMode.Hosted), "Hosted (Use Authorize.Net hosted form)");
-                    result.Add(nameof(RenderFormMode.HostedPartial), "Partial Hosted (Show Authorize.Net hosted form in pop-up on your own template)");
-                    result.Add(nameof(RenderFormMode.Manual), "Manual (Use your own payment form. SSL required)");
+                    result.Add(new("Hosted (Use Authorize.Net hosted form)", nameof(RenderFormMode.Hosted)));
+                    result.Add(new("Partial Hosted (Show Authorize.Net hosted form in pop-up on your own template)", nameof(RenderFormMode.HostedPartial)));
+                    result.Add(new("Manual (Use your own payment form. SSL required)", nameof(RenderFormMode.Manual)));
                     break;
 
                 case "TypeOfTransaction":
-                    result.Add(nameof(TransactionType.AuthCaptureTransaction), "Authorization and Capture");
-                    result.Add(nameof(TransactionType.AuthOnlyTransaction), "Authorization only");
+                    result.Add(new("Authorization and Capture", nameof(TransactionType.AuthCaptureTransaction)));
+                    result.Add(new("Authorization only", nameof(TransactionType.AuthOnlyTransaction)));
                     break;
             }
             return result;
@@ -975,7 +1004,7 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
                 transactionKey = TransactionKey
             };
         }
-        private T PostToAuthorizeNet<T>(string jsonObject)
+        private T? PostToAuthorizeNet<T>(string jsonObject)
         {
             string url = TestMode ? "https://apitest.authorize.net/xml/v1/request.api" : "https://api.authorize.net/xml/v1/request.api";
             using (var client = new HttpClient())
@@ -990,9 +1019,9 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
             }
         }
 
-        private string OnError(Order order, string message) => OnError(order, message, null);
+        private OutputResult OnError(Order order, string message) => OnError(order, message, null);
 
-        private string OnError(Order order, string message, Exception exception)
+        private OutputResult OnError(Order order, string message, Exception? exception)
         {
             if (exception != null)
             {
@@ -1009,19 +1038,18 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
             Save(order);
 
             Services.Orders.DowngradeToCart(order);
-            order.CartV2StepIndex = 0;
             order.TransactionStatus = string.Empty;
             Common.Context.SetCart(order);
 
             if (string.IsNullOrWhiteSpace(ErrorTemplate))
             {
-                RedirectToCart(order);
+                return PassToCart(order);
             }
 
             var errorTemplate = new Template(ErrorTemplate);
             errorTemplate.SetTag("CheckoutHandler:ErrorMessage", message);
 
-            return Render(order, errorTemplate);
+            return new ContentOutputResult() { Content = Render(order, errorTemplate) };
         }
 
         private void Save(Order order) => Services.Orders.Save(order);

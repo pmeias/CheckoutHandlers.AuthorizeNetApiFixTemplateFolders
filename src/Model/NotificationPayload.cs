@@ -6,24 +6,24 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi.Model
     public class NotificationPayload
     {
         [DataMember(Name = "id")]
-        public string Id { get; set; }
+        public string Id { get; set; } = "";
 
         [DataMember(Name = "responseCode")]
         public int ResponseCode { get; set; }
 
         [DataMember(Name = "authCode")]
-        public string AuthCode { get; set; }
+        public string AuthCode { get; set; } = "";
 
         [DataMember(Name = "avsResponse")]
-        public string AvsResponse { get; set; }
+        public string AvsResponse { get; set; } = "";
 
         [DataMember(Name = "authAmount")]
         public double Amount { get; set; }
 
         [DataMember(Name = "invoiceNumber")]
-        public string OrderId { get; set; }
+        public string OrderId { get; set; } = "";
 
         [DataMember(Name = "entityName")]
-        public string Name { get; set; }
+        public string Name { get; set; } = "";
     }
 }

@@ -2,8 +2,8 @@
 {
     internal class secureAcceptance
     {
-        public string SecureAcceptanceUrl { get; set; }
-        public string PayerID { get; set; }
-        public string PayerEmail { get; set; }
+        public string SecureAcceptanceUrl { get; set; } = "";
+        public string PayerID { get; set; } = "";
+        public string PayerEmail { get; set; } = "";
     }
 }

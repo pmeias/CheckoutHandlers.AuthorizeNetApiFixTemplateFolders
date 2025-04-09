@@ -2,8 +2,8 @@
 {
     internal class paymentMaskedType
     {
-        public creditCardMaskedType creditCard { get; set; }
-        public bankAccountMaskedType bankAccount { get; set; }
-        public tokenMaskedType tokenInformation { get; set; }
+        public creditCardMaskedType creditCard { get; set; } = new();
+        public bankAccountMaskedType bankAccount { get; set; } = new();
+        public tokenMaskedType tokenInformation { get; set; } = new();
     }
 }

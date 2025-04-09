@@ -2,6 +2,6 @@
 {
     internal class customerProfileMaskedType
     {
-        public string customerProfileId { get; set; }
+        public string customerProfileId { get; set; } = "";
     }
 }

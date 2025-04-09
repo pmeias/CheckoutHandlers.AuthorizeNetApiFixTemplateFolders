@@ -2,7 +2,7 @@
 {
     internal class creditCardType
     {
-        public string cardNumber { get; set; }
-        public string expirationDate { get; set; }
+        public string cardNumber { get; set; } = "";
+        public string expirationDate { get; set; } = "";
     }
 }
