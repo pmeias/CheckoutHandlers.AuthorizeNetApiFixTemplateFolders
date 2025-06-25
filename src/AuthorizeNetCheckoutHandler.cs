@@ -33,6 +33,10 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
             public const string FormAction = "AuthorizeNet.FormAction";
         }
 
+        private const string PaymentTemplateFolder = "eCom7/CheckoutHandler/AuthorizeNet/Post";
+        private const string CancelTemplateFolder = "eCom7/CheckoutHandler/AuthorizeNet/Cancel";
+        private const string ErrorTemplateFolder = "eCom7/CheckoutHandler/AuthorizeNet/Error";
+
         #region Fields
 
         /// <summary>
@@ -123,13 +127,13 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
             }
         }
 
-        [AddInLabel("Payment form template"), AddInParameter("PaymentFormTemplate"), AddInParameterGroup("Template settings"), AddInParameterEditor(typeof(TemplateParameterEditor), "folder=templates/eCom7/CheckoutHandler/AuthorizeNet/Post")]
+        [AddInLabel("Payment form template"), AddInParameter("PaymentFormTemplate"), AddInParameterGroup("Template settings"), AddInParameterEditor(typeof(TemplateParameterEditor), $"folder=templates/{PaymentTemplateFolder}")]
         public string PaymentFormTemplate { get; set; } = "";
 
-        [AddInLabel("Cancel template"), AddInParameter("CancelTemplate"), AddInParameterGroup("Template settings"), AddInParameterEditor(typeof(TemplateParameterEditor), "folder=templates/eCom7/CheckoutHandler/AuthorizeNet/Cancel")]
+        [AddInLabel("Cancel template"), AddInParameter("CancelTemplate"), AddInParameterGroup("Template settings"), AddInParameterEditor(typeof(TemplateParameterEditor), $"folder=templates/{CancelTemplateFolder}")]
         public string CancelTemplate { get; set; } = "";
 
-        [AddInLabel("Error template"), AddInParameter("ErrorTemplate"), AddInParameterGroup("Template settings"), AddInParameterEditor(typeof(TemplateParameterEditor), "folder=templates/eCom7/CheckoutHandler/AuthorizeNet/Error")]
+        [AddInLabel("Error template"), AddInParameter("ErrorTemplate"), AddInParameterGroup("Template settings"), AddInParameterEditor(typeof(TemplateParameterEditor), $"folder=templates/{ErrorTemplateFolder}")]
         public string ErrorTemplate { get; set; } = "";
 
         #endregion
@@ -170,7 +174,9 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
                     javaScriptUrl = TestMode ? "https://jstest.authorize.net/v3/AcceptUI.js" : "https://js.authorize.net/v3/AcceptUI.js";
                 }
 
-                var template = new Template(PaymentFormTemplate);
+                var templatePath = TemplateHelper.GetTemplatePath(PaymentFormTemplate, PaymentTemplateFolder);
+                var template = new Template(templatePath);
+                
                 template.SetTag(Tags.ApiLoginId, ApiLoginId);
                 template.SetTag(Tags.AuthorizeNetJavaScriptUrl, javaScriptUrl);
                 template.SetTag(Tags.FormAction, $"{GetBaseUrl(order)}&action=FormPost");
@@ -367,7 +373,9 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
             order.TransactionStatus = "Cancelled";
             CheckoutDone(order);
 
-            var cancelTemplate = new Template(CancelTemplate);
+            var templatePath = TemplateHelper.GetTemplatePath(CancelTemplate, CancelTemplateFolder);
+            var cancelTemplate = new Template(templatePath);
+            
             cancelTemplate.SetTag("CheckoutHandler:CancelMessage", "Payment has been cancelled before processing was completed");
             var orderRenderer = new Frontend.Renderer();
             orderRenderer.RenderOrderDetails(cancelTemplate, order, true);
@@ -1045,8 +1053,10 @@ namespace Dynamicweb.Ecommerce.CheckoutHandlers.AuthorizeNetApi
             {
                 return PassToCart(order);
             }
+            
+            var templatePath = TemplateHelper.GetTemplatePath(ErrorTemplate, ErrorTemplateFolder);
+            var errorTemplate = new Template(templatePath);
 
-            var errorTemplate = new Template(ErrorTemplate);
             errorTemplate.SetTag("CheckoutHandler:ErrorMessage", message);
 
             return new ContentOutputResult() { Content = Render(order, errorTemplate) };
